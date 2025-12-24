@@ -35,15 +35,12 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         echo "Masuk ke folder project..."
-        # Pastikan kamu masuk ke folder yang benar tempat MLproject berada
-        # Kalau MLproject ada di root, hapus baris 'cd MLProject' di bawah ini
-        # Kalau MLproject ada di dalam folder MLProject, biarkan.
+        # Hapus baris 'cd MLProject' jika file MLproject ada di root repository kamu
         # cd MLProject 
         
         echo "Menjalankan training via MLflow Run..."
-        # Reviewer minta pakai 'mlflow run', bukan 'python modelling.py'
-        # --no-conda dipakai biar dia pakai library yang barusan kita install di step atas (lebih cepat)
-        mlflow run . --no-conda --entry-point main -P n_estimators=100 -P learning_rate=0.1
+        # PERBAIKAN: Ganti --no-conda menjadi --env-manager=local
+        mlflow run . --env-manager=local --entry-point main -P n_estimators=100 -P learning_rate=0.1
 
     # --- SIMPAN ARTEFAK (Kriteria Skilled) ---
     - name: Upload Model Artifact to GitHub
