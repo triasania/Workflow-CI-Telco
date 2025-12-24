@@ -1,0 +1,71 @@
+name: CI Pipeline & Docker Build (Fix MLflow Run)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  training_job:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mlflow dagshub pandas scikit-learn xgboost joblib matplotlib seaborn
+
+    - name: Login ke Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # --- BAGIAN INI YANG DIUBAH (Sesuai Permintaan Reviewer) ---
+    - name: Jalankan MLflow Project (mlflow run)
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: |
+        echo "Masuk ke folder project..."
+        # Pastikan kamu masuk ke folder yang benar tempat MLproject berada
+        # Kalau MLproject ada di root, hapus baris 'cd MLProject' di bawah ini
+        # Kalau MLproject ada di dalam folder MLProject, biarkan.
+        # cd MLProject 
+        
+        echo "Menjalankan training via MLflow Run..."
+        # Reviewer minta pakai 'mlflow run', bukan 'python modelling.py'
+        # --no-conda dipakai biar dia pakai library yang barusan kita install di step atas (lebih cepat)
+        mlflow run . --no-conda --entry-point main -P n_estimators=100 -P learning_rate=0.1
+
+    # --- SIMPAN ARTEFAK (Kriteria Skilled) ---
+    - name: Upload Model Artifact to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: model-hasil-training
+        # Pastikan folder ini sesuai dengan output script modelling.py kamu
+        path: model_docker_local 
+
+    # --- DOCKER BUILD (Kriteria Advanced) ---
+    - name: Build & Push Docker Image
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+      run: |
+        IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
+        
+        echo "Build Docker Image..."
+        # Pastikan folder model_docker_local sudah terbentuk dari step sebelumnya
+        mlflow models build-docker --model-uri "./model_docker_local" --name "$IMAGE_NAME"
+        
+        echo "Push ke Docker Hub..."
+        docker push "$IMAGE_NAME"
