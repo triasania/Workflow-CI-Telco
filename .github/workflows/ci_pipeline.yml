@@ -1,4 +1,4 @@
-name: Continuous Integration (CI)
+name: CI Pipeline & Docker Build (Advance)
 
 on:
   push:
@@ -16,22 +16,40 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install Dependencies Lengkap
+    - name: Install Dependencies
       run: |
         python -m pip install --upgrade pip
-        # Kita install SEMUA library yang mungkin dipakai biar aman
         pip install mlflow dagshub pandas scikit-learn xgboost joblib matplotlib seaborn
 
-    - name: Cek Struktur Folder (Debug)
-      run: |
-        echo "Isi folder saat ini:"
-        ls -R
+    - name: Login ke Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Jalankan MLflow Project
+    - name: Jalankan MLflow Project & Build Docker
       env:
         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
         MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        # Perintah ini akan mencari folder 'MLProject' dan menjalankan file di dalamnya
+        # 1. Jalankan Training
         mlflow run MLProject --env-manager=local --experiment-name "Eksperimen_Skilled_Telco"
+        
+        # 2. Ambil Run ID Terakhir (Otomatis)
+        # Kita pakai script python kecil untuk mengambil ID dari run barusan
+        LAST_RUN_ID=$(python -c "import mlflow; mlflow.set_tracking_uri('${MLFLOW_TRACKING_URI}'); print(mlflow.search_runs(experiment_names=['Eksperimen_Skilled_Telco'], max_results=1).iloc[0].run_id)")
+        
+        echo "Run ID ditemukan: $LAST_RUN_ID"
+        
+        # 3. Build Docker Image dari Model tersebut
+        # Format nama image: username/nama-image:tag
+        IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
+        
+        echo "Sedang membuild Docker Image: $IMAGE_NAME ..."
+        mlflow models build-docker --model-uri "runs:/$LAST_RUN_ID/model" --name "$IMAGE_NAME"
+        
+        # 4. Upload ke Docker Hub
+        echo "Mengupload ke Docker Hub..."
+        docker push "$IMAGE_NAME"
