@@ -78,13 +78,11 @@ def train_skilled():
         
         # Log Metriks
         mlflow.log_metrics(metrics)
-        
-        # Log Model
+    
+        print("Menyimpan model ke folder 'model'...")
+        import mlflow.sklearn 
         mlflow.xgboost.log_model(best_model, "model")
-        
-        # Simpan lokal (opsional tapi berguna)
-        joblib.dump(best_model, "churn_model_skilled.pkl")
-        
+
         print("Training Skilled Selesai. Metriks tercatat manual di MLflow.")
 
 if __name__ == "__main__":
