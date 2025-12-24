@@ -37,17 +37,21 @@ jobs:
         # 1. Jalankan Training
         mlflow run MLProject --env-manager=local --experiment-name "Eksperimen_Skilled_Telco"
         
-        # 2. Ambil Run ID Terakhir (Otomatis)
-        # Kita pakai script python kecil untuk mengambil ID dari run barusan
+        # 2. Ambil Run ID Terakhir
         LAST_RUN_ID=$(python -c "import mlflow; mlflow.set_tracking_uri('${MLFLOW_TRACKING_URI}'); print(mlflow.search_runs(experiment_names=['Eksperimen_Skilled_Telco'], max_results=1).iloc[0].run_id)")
         
         echo "Run ID ditemukan: $LAST_RUN_ID"
         
-        # 3. Build Docker Image dari Model tersebut
-        # Format nama image: username/nama-image:tag
+        # --- PERBAIKAN DI SINI: KITA KASIH JEDA 30 DETIK ---
+        echo "Menunggu DagsHub memproses artifact..."
+        sleep 30
+        # ---------------------------------------------------
+
+        # 3. Build Docker Image
         IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
         
         echo "Sedang membuild Docker Image: $IMAGE_NAME ..."
+        # Pastikan tetap pakai /model karena di python kamu save ke folder "model"
         mlflow models build-docker --model-uri "runs:/$LAST_RUN_ID/model" --name "$IMAGE_NAME"
         
         # 4. Upload ke Docker Hub
