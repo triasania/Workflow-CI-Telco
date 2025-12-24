@@ -34,4 +34,4 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
       run: |
         # Perintah ini akan mencari folder 'MLProject' dan menjalankan file di dalamnya
-        mlflow run MLProject --no-conda --experiment-name "CI_Github_Action"
+        mlflow run MLProject --env-manager=local --experiment-name "CI_Github_Action"
