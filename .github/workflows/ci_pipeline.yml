@@ -1,0 +1,75 @@
+name: CI Pipeline & Docker Build (Advance Fix)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  training_job:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Setup Lingkungan
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install mlflow dagshub pandas scikit-learn xgboost joblib matplotlib seaborn
+
+    # 2. Login Docker (Disiapkan di awal biar aman)
+    - name: Login ke Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    # 3. Training & Generate Model Lokal
+    - name: Jalankan Training MLflow
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+      run: |
+        echo "Masuk ke folder project..."
+        cd MLProject
+        
+        echo "Menjalankan script training..."
+        # Pastikan script ini menghasilkan folder 'model_docker_local'
+        python modelling.py --n_estimators 100 --learning_rate 0.1
+        
+        echo "Cek folder hasil training..."
+        ls -R model_docker_local
+
+    # 4. [SKILLED STEP] Upload Artifact ke GitHub
+    # INI YANG KEMARIN HILANG. Langkah ini menyimpan folder model agar bisa didownload dari GitHub Actions
+    - name: Upload Model Artifact to GitHub
+      uses: actions/upload-artifact@v4
+      with:
+        name: model-hasil-training  # Nama file zip nanti saat didownload
+        path: MLProject/model_docker_local  # Lokasi folder yang mau disimpan
+        retention-days: 1
+
+    # 5. [ADVANCED STEP] Build & Push Docker
+    - name: Build & Push Docker Image
+      env:
+        MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+        MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+        MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
+      run: |
+        cd MLProject
+        
+        IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
+        
+        echo "Build Docker Image dari folder LOKAL..."
+        # Kita ambil dari folder lokal yang baru saja dibuat di step sebelumnya
+        mlflow models build-docker --model-uri "./model_docker_local" --name "$IMAGE_NAME"
+        
+        echo "Push ke Docker Hub..."
+        docker push "$IMAGE_NAME"
