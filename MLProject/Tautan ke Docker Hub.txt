@@ -1,0 +1,2 @@
+https://hub.docker.com/repository/docker/triasania/telco-churn-model/general
+https://github.com/triasania/Workflow-CI-Telco
