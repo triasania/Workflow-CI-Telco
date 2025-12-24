@@ -77,11 +77,11 @@ def train_skilled():
 if __name__ == "__main__":
     print("Memulai Training via MLflow Project...")
     
-    # Parse Argument (Biarkan saja meski tidak dipakai di fungsi, biar tidak error argumen)
+    # Parse Argument
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_estimators", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=0.1)
     args = parser.parse_args()
 
-    # Panggil Fungsi Training
+    # Panggil LANGSUNG fungsinya. Jangan pakai spasi/tab di depannya (Rata Kiri).
     train_skilled()
