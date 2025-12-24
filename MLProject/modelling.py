@@ -46,7 +46,7 @@ def train_final_submission(n_est_input, lr_input):
     y_test = test_df["Churn"]
 
     # --- 3. Setup MLflow ---
-    mlflow.set_experiment("Eksperimen_Advanced_Telco")
+    #mlflow.set_experiment("Eksperimen_Advanced_Telco")
 
     # Start Run
     with mlflow.start_run(run_name="Advanced_CI_Pipeline_Run"):
