@@ -63,16 +63,28 @@ def train_skilled():
             "roc_auc": roc_auc_score(y_test, y_proba)
         }
 
-        # 5. Logging ke MLflow
+        # 5. Logging ke MLflow (Cloud - Buat Syarat Tugas)
         mlflow.log_params(best_params)
         mlflow.log_metrics(metrics)
         
-        # --- SAVE MODEL (PENTING BUAT DOCKER) ---
-        print("Menyimpan model ke folder 'model'...")
+        print("Menyimpan model ke Cloud (DagsHub)...")
         mlflow.xgboost.log_model(best_model, "model")
-        print("Model berhasil disimpan.")
 
-        print("Training Skilled Selesai. Metriks tercatat manual di MLflow.")
+        # --- TAMBAHAN BARU: SIMPAN LOKAL (JURUS ANTI GAGAL) ---
+        print("Menyimpan model ke LOKAL (Bypass Download)...")
+        local_path = "model_docker_local"
+        
+        # Hapus dulu kalau ada folder lama biar bersih
+        if os.path.exists(local_path):
+            import shutil
+            shutil.rmtree(local_path)
+            
+        # Simpan model di folder lokal runner
+        mlflow.xgboost.save_model(best_model, local_path)
+        print(f"Model lokal tersimpan di: {local_path}")
+        # ------------------------------------------------------
+
+        print("Training Skilled Selesai.")
 
 if __name__ == "__main__":
     print("Memulai Training via MLflow Project...")
