@@ -48,7 +48,7 @@ jobs:
         IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
         
         echo "Sedang membuild Docker Image: $IMAGE_NAME ..."
-        mlflow models build-docker --model-uri "runs:/$LAST_RUN_ID" --name "$IMAGE_NAME"
+        mlflow models build-docker --model-uri "runs:/$LAST_RUN_ID/model" --name "$IMAGE_NAME"
         
         # 4. Upload ke Docker Hub
         echo "Mengupload ke Docker Hub..."
