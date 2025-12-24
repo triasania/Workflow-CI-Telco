@@ -42,18 +42,26 @@ jobs:
         
         echo "Run ID ditemukan: $LAST_RUN_ID"
         
-        # --- PERBAIKAN DI SINI: KITA KASIH JEDA 30 DETIK ---
-        echo "Menunggu DagsHub memproses artifact..."
-        sleep 30
-        # ---------------------------------------------------
-
-        # 3. Build Docker Image
+        # --- JEDA & CEK ---
+        echo "Menunggu DagsHub (60 detik)..."
+        sleep 60  # Kita tambah jadi 1 menit biar aman
+        
+        # 3. DOWNLOAD MANUAL (Jurus Anti-Gagal)
+        # Kita paksa download artifact 'model' ke folder lokal bernama 'model_download'
+        echo "Mencoba download model ke lokal..."
+        mlflow artifacts download --run-id $LAST_RUN_ID --artifact-path model --dst-path ./model_download
+        
+        # Cek apakah folder berhasil didownload
+        ls -R model_download
+        
+        # 4. Build Docker Image dari Folder LOKAL
         IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
         
         echo "Sedang membuild Docker Image: $IMAGE_NAME ..."
-        # Pastikan tetap pakai /model karena di python kamu save ke folder "model"
-        mlflow models build-docker --model-uri "runs:/$LAST_RUN_ID/model" --name "$IMAGE_NAME"
         
-        # 4. Upload ke Docker Hub
+        # Perhatikan: --model-uri mengarah ke folder lokal hasil download tadi
+        mlflow models build-docker --model-uri "./model_download/model" --name "$IMAGE_NAME"
+        
+        # 5. Upload ke Docker Hub
         echo "Mengupload ke Docker Hub..."
         docker push "$IMAGE_NAME"
