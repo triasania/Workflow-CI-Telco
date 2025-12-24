@@ -34,8 +34,12 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        # 1. Jalankan Training Langsung (Bukan mlflow run)
-        # Biar folder output-nya ada di tempat kita berdiri sekarang
+        # 1. Masuk ke folder MLProject dulu (PENTING!)
+        echo "Masuk ke folder project..."
+        cd MLProject
+        
+        # 2. Jalankan Training Langsung
+        # Sekarang pasti bisa, karena modelling.py ada di sebelah kita
         echo "Menjalankan script training..."
         python modelling.py --n_estimators 100 --learning_rate 0.1
         
@@ -43,15 +47,14 @@ jobs:
         echo "Mengecek folder model lokal..."
         ls -R model_docker_local
         
-        # 2. Build Docker Image dari Folder LOKAL
-        # Kita ambil langsung dari folder "model_docker_local" yang barusan dibuat
-        # GAK PERLU DOWNLOAD, GAK PERLU SLEEP, GAK PERLU DAGSHUB SYNC
+        # 3. Build Docker Image dari Folder LOKAL
+        # Karena kita masih di dalam folder MLProject, path-nya ./model_docker_local
         IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
         
         echo "Sedang membuild Docker Image dari LOKAL: $IMAGE_NAME ..."
         
         mlflow models build-docker --model-uri "./model_docker_local" --name "$IMAGE_NAME"
         
-        # 3. Upload ke Docker Hub
+        # 4. Upload ke Docker Hub
         echo "Mengupload ke Docker Hub..."
         docker push "$IMAGE_NAME"
