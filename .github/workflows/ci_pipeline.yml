@@ -34,34 +34,24 @@ jobs:
         MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
         DOCKER_USER: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        # 1. Jalankan Training
-        mlflow run MLProject --env-manager=local --experiment-name "Eksperimen_Skilled_Telco"
+        # 1. Jalankan Training Langsung (Bukan mlflow run)
+        # Biar folder output-nya ada di tempat kita berdiri sekarang
+        echo "Menjalankan script training..."
+        python modelling.py --n_estimators 100 --learning_rate 0.1
         
-        # 2. Ambil Run ID Terakhir
-        LAST_RUN_ID=$(python -c "import mlflow; mlflow.set_tracking_uri('${MLFLOW_TRACKING_URI}'); print(mlflow.search_runs(experiment_names=['Eksperimen_Skilled_Telco'], max_results=1).iloc[0].run_id)")
+        # Cek apakah folder lokal berhasil dibuat
+        echo "Mengecek folder model lokal..."
+        ls -R model_docker_local
         
-        echo "Run ID ditemukan: $LAST_RUN_ID"
-        
-        # --- JEDA & CEK ---
-        echo "Menunggu DagsHub (60 detik)..."
-        sleep 60  # Kita tambah jadi 1 menit biar aman
-        
-        # 3. DOWNLOAD MANUAL (Jurus Anti-Gagal)
-        # Kita paksa download artifact 'model' ke folder lokal bernama 'model_download'
-        echo "Mencoba download model ke lokal..."
-        mlflow artifacts download --run-id $LAST_RUN_ID --artifact-path model --dst-path ./model_download
-        
-        # Cek apakah folder berhasil didownload
-        ls -R model_download
-        
-        # 4. Build Docker Image dari Folder LOKAL
+        # 2. Build Docker Image dari Folder LOKAL
+        # Kita ambil langsung dari folder "model_docker_local" yang barusan dibuat
+        # GAK PERLU DOWNLOAD, GAK PERLU SLEEP, GAK PERLU DAGSHUB SYNC
         IMAGE_NAME="${DOCKER_USER}/telco-churn-model:v1"
         
-        echo "Sedang membuild Docker Image: $IMAGE_NAME ..."
+        echo "Sedang membuild Docker Image dari LOKAL: $IMAGE_NAME ..."
         
-        # Perhatikan: --model-uri mengarah ke folder lokal hasil download tadi
-        mlflow models build-docker --model-uri "./model_download/model" --name "$IMAGE_NAME"
+        mlflow models build-docker --model-uri "./model_docker_local" --name "$IMAGE_NAME"
         
-        # 5. Upload ke Docker Hub
+        # 3. Upload ke Docker Hub
         echo "Mengupload ke Docker Hub..."
         docker push "$IMAGE_NAME"
