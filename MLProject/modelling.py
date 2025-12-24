@@ -59,6 +59,12 @@ def train_skilled():
         best_params = grid_search.best_params_
         print(f"Best Params ditemukan: {best_params}")
 
+        print("Menyimpan model ke folder 'model'...")
+        import mlflow.xgboost
+        
+        mlflow.xgboost.log_model(best_model, "model")
+        print("Model berhasil disimpan.")
+
         # 4. Evaluasi & Hitung Metriks Manual
         y_pred = best_model.predict(X_test)
         y_proba = best_model.predict_proba(X_test)[:, 1]
@@ -88,19 +94,11 @@ def train_skilled():
 if __name__ == "__main__":
     print("Memulai Training via MLflow Project...")
     
-    # 1. Menangkap parameter dari perintah luar (MLProject)
+    # Parse Argument
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_estimators", type=int, default=100)
     parser.add_argument("--learning_rate", type=float, default=0.1)
     args = parser.parse_args()
 
-    # 2. Cetak parameter biar kita tahu ini jalan
-    print(f"Parameter diterima: n_estimators={args.n_estimators}, learning_rate={args.learning_rate}")
-
-    # 3. Jalankan fungsi training utama kamu
-    # Pastikan nama fungsinya sesuai dengan yang ada di script kamu (misal: train_skilled)
-    try:
-        train_skilled() 
-    except NameError:
-        # Jaga-jaga kalau nama fungsinya beda
-        print("⚠️ Warning: Pastikan nama fungsi training kamu benar (misal: train_skilled())")
+    # Panggil Fungsi Training
+    train_skilled()
